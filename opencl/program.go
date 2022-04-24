@@ -36,8 +36,8 @@ func (p Program) Build(device Device, log *string) error {
 
 	var errInt clError = clError(C.clBuildProgram(
 		p.program,
-		0,
-		nil,
+		1,
+		&device.deviceID,
 		emptyString,
 		nil,
 		nil,
@@ -51,17 +51,30 @@ func (p Program) Build(device Device, log *string) error {
 		return clErrorToError(errInt)
 	}
 
-	size := uint64(4096)
-	compilerLog := make([]byte, size)
-	C.clGetProgramBuildInfo(
+	var sizeptr C.ulong
+	var buildInfoError = clError(C.clGetProgramBuildInfo(
 		p.program,
 		device.deviceID,
 		C.CL_PROGRAM_BUILD_LOG,
-		C.size_t(size),
-		unsafe.Pointer(&compilerLog[0]),
-		nil)
+		0,
+		nil,
+		&sizeptr))
 
-	*log = strings.TrimRight(string(compilerLog), "\x00")
+	if buildInfoError == clSuccess {
+
+		size := uint64(sizeptr)
+		compilerLog := make([]byte, size)
+
+		buildInfoError = clError(C.clGetProgramBuildInfo(
+			p.program,
+			device.deviceID,
+			C.CL_PROGRAM_BUILD_LOG,
+			C.size_t(size),
+			unsafe.Pointer(&compilerLog[0]),
+			nil))
+
+		*log = strings.TrimRight(string(compilerLog), "\x00")
+	}
 
 	return clErrorToError(errInt)
 }

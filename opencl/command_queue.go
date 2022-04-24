@@ -50,11 +50,55 @@ func (c CommandQueue) EnqueueReadBuffer(buffer Buffer, blockingRead bool, dataPt
 	case []float32:
 		dataLen = uint64(len(p) * 4)
 		ptr = unsafe.Pointer(&p[0])
+	case []byte:
+		dataLen = uint64(len(p))
+		ptr = unsafe.Pointer(&p[0])
 	default:
-		return errors.New("Unexpected type for dataPtr")
+		return errors.New("unexpected type for dataPtr")
 	}
 
 	errInt := clError(C.clEnqueueReadBuffer(c.commandQueue,
+		buffer.buffer,
+		br,
+		0,
+		C.size_t(dataLen),
+		ptr,
+		0, nil, nil))
+	return clErrorToError(errInt)
+}
+
+func (c CommandQueue) EnqueueWriteBuffer(buffer Buffer, blockingWrite bool, dataPtr interface{}) error {
+	var br C.cl_bool
+	if blockingWrite {
+		br = C.CL_TRUE
+	} else {
+		br = C.CL_FALSE
+	}
+
+	var ptr unsafe.Pointer
+	var dataLen uint64
+	switch p := dataPtr.(type) {
+	case []float32:
+		dataLen = uint64(len(p) * 4)
+		ptr = unsafe.Pointer(&p[0])
+	case []byte:
+		dataLen = uint64(len(p))
+		ptr = unsafe.Pointer(&p[0])
+	default:
+		return errors.New("unexpected type for dataPtr")
+	}
+
+	//cl_int clEnqueueWriteBuffer (	cl_command_queue command_queue,
+	//	cl_mem buffer,
+	//	cl_bool blocking_write,
+	//	size_t offset,
+	//	size_t cb,
+	//const void *ptr,
+	//cl_uint num_events_in_wait_list,
+	//const cl_event *event_wait_list,
+	//cl_event *event)
+
+	errInt := clError(C.clEnqueueWriteBuffer(c.commandQueue,
 		buffer.buffer,
 		br,
 		0,

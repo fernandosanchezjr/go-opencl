@@ -2,13 +2,16 @@ package opencl
 
 // #include "opencl.h"
 import "C"
+import "unsafe"
 
 type MemFlags uint64
 
 const (
-	MemReadWrite MemFlags = C.CL_MEM_READ_WRITE
-	MemWriteOnly          = C.CL_MEM_WRITE_ONLY
-	MemReadOnly           = C.CL_MEM_READ_ONLY
+	MemReadWrite   MemFlags = C.CL_MEM_READ_WRITE
+	MemWriteOnly            = C.CL_MEM_WRITE_ONLY
+	MemReadOnly             = C.CL_MEM_READ_ONLY
+	MemCopyHostPtr          = C.CL_MEM_COPY_HOST_PTR
+	MemUseHostPtr           = C.CL_MEM_USE_HOST_PTR
 	// ...
 )
 
@@ -29,6 +32,29 @@ func createBuffer(context Context, flags []MemFlags, size uint64) (Buffer, error
 		C.cl_mem_flags(flagBitField),
 		C.size_t(size),
 		nil,
+		(*C.cl_int)(&errInt),
+	)
+	if errInt != clSuccess {
+		return Buffer{}, clErrorToError(errInt)
+	}
+
+	return Buffer{buffer}, nil
+}
+
+func createBufferWithBytes(context Context, flags []MemFlags, size uint64, data []byte) (Buffer, error) {
+	// AND together all flags
+	flagBitField := uint64(0)
+	for _, flag := range flags {
+		flagBitField &= uint64(flag)
+	}
+
+	var argPtr = unsafe.Pointer(&data[0])
+	var errInt clError
+	buffer := C.clCreateBuffer(
+		context.context,
+		C.cl_mem_flags(flagBitField),
+		C.size_t(size),
+		argPtr,
 		(*C.cl_int)(&errInt),
 	)
 	if errInt != clSuccess {

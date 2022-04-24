@@ -39,6 +39,10 @@ func (c Context) CreateBuffer(memFlags []MemFlags, size uint64) (Buffer, error) 
 	return createBuffer(c, memFlags, size)
 }
 
+func (c Context) CreateBufferWithBytes(memFlags []MemFlags, size uint64, data []byte) (Buffer, error) {
+	return createBufferWithBytes(c, memFlags, size, data)
+}
+
 func (c Context) Release() {
 	C.clReleaseContext(c.context)
 }
